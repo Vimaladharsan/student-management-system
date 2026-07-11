@@ -28,7 +28,7 @@ class DepartmentGUI(tk.Toplevel):
             font=("Segoe UI", 18, "bold")
         ).pack(pady=15)
 
-        form = ttk.Frame(self)
+        form = ttk.LabelFrame(self, text="Department Details")
         form.pack(fill="x", padx=20)
 
         ttk.Label(form, text="Department Name").grid(
@@ -65,6 +65,12 @@ class DepartmentGUI(tk.Toplevel):
             command=self.load_departments
         ).grid(row=0, column=3, padx=8)
 
+        ttk.Button(
+            button_frame,
+            text="Clear",
+            command=self.clear_form
+        ).grid(row=0, column=4, padx=8)
+
         columns = ("ID", "Department")
 
         self.tree = ttk.Treeview(
@@ -88,7 +94,7 @@ class DepartmentGUI(tk.Toplevel):
             command=self.tree.yview
         )
 
-        self.tree.configure(yscroll=scrollbar.set)
+        self.tree.configure(yscrollcommand=scrollbar.set)
         scrollbar.place(relx=0.97, rely=0.25, relheight=0.58)
 
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
@@ -96,22 +102,29 @@ class DepartmentGUI(tk.Toplevel):
         self.load_departments()
 
     def load_departments(self):
+
         for row in self.tree.get_children():
             self.tree.delete(row)
 
         self.departments = get_all_departments()
 
         for dept in self.departments:
+
             self.tree.insert(
                 "",
                 tk.END,
-                values=(dept[0], dept[1])
+                values=(
+                    dept[0],
+                    dept[1]
+                )
             )
 
     def add_department(self):
+
         name = self.name_entry.get().strip()
 
         if not name:
+
             messagebox.showwarning(
                 "Validation",
                 "Department name is required."
@@ -125,10 +138,11 @@ class DepartmentGUI(tk.Toplevel):
             "Department added successfully."
         )
 
-        self.name_entry.delete(0, tk.END)
+        self.clear_form()
         self.load_departments()
 
     def update_department(self):
+
         selected = self.tree.selection()
 
         if not selected:
@@ -147,9 +161,11 @@ class DepartmentGUI(tk.Toplevel):
             "Department updated successfully."
         )
 
+        self.clear_form()
         self.load_departments()
 
     def delete_department(self):
+
         selected = self.tree.selection()
 
         if not selected:
@@ -170,9 +186,15 @@ class DepartmentGUI(tk.Toplevel):
             "Department deleted successfully."
         )
 
+        self.clear_form()
         self.load_departments()
 
+    def clear_form(self):
+
+        self.name_entry.delete(0, tk.END)
+
     def on_select(self, event):
+
         selected = self.tree.selection()
 
         if not selected:
@@ -180,5 +202,9 @@ class DepartmentGUI(tk.Toplevel):
 
         values = self.tree.item(selected[0])["values"]
 
-        self.name_entry.delete(0, tk.END)
-        self.name_entry.insert(0, values[1])
+        self.clear_form()
+
+        self.name_entry.insert(
+            0,
+            values[1]
+        )
