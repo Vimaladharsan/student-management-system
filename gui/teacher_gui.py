@@ -1,7 +1,12 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from dao.teacher_dao import add_teacher, get_all_teachers
+from dao.teacher_dao import (
+    add_teacher,
+    get_all_teachers,
+    update_teacher,
+    delete_teacher
+)
 from dao.department_dao import get_all_departments
 
 
@@ -27,7 +32,7 @@ class TeacherGUI(tk.Toplevel):
         form = ttk.LabelFrame(self, text="Teacher Details")
         form.pack(fill="x", padx=20)
 
-        ttk.Label(form, text="Name").grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        ttk.Label(form, text="Name").grid(row=0, column=0, padx=10, pady=10)
         self.name_entry = ttk.Entry(form, width=35)
         self.name_entry.grid(row=0, column=1)
 
@@ -35,7 +40,7 @@ class TeacherGUI(tk.Toplevel):
         self.email_entry = ttk.Entry(form, width=35)
         self.email_entry.grid(row=0, column=3)
 
-        ttk.Label(form, text="Phone").grid(row=1, column=0, padx=10, pady=10, sticky="w")
+        ttk.Label(form, text="Phone").grid(row=1, column=0, padx=10, pady=10)
         self.phone_entry = ttk.Entry(form, width=35)
         self.phone_entry.grid(row=1, column=1)
 
@@ -51,8 +56,10 @@ class TeacherGUI(tk.Toplevel):
         button_frame.pack(pady=15)
 
         ttk.Button(button_frame, text="Add", command=self.add_teacher).grid(row=0, column=0, padx=6)
-        ttk.Button(button_frame, text="Refresh", command=self.load_teachers).grid(row=0, column=1, padx=6)
-        ttk.Button(button_frame, text="Clear", command=self.clear_form).grid(row=0, column=2, padx=6)
+        ttk.Button(button_frame, text="Update", command=self.update_teacher).grid(row=0, column=1, padx=6)
+        ttk.Button(button_frame, text="Delete", command=self.delete_teacher).grid(row=0, column=2, padx=6)
+        ttk.Button(button_frame, text="Refresh", command=self.load_teachers).grid(row=0, column=3, padx=6)
+        ttk.Button(button_frame, text="Clear", command=self.clear_form).grid(row=0, column=4, padx=6)
 
         columns = (
             "ID",
@@ -89,6 +96,8 @@ class TeacherGUI(tk.Toplevel):
         self.tree.pack(fill="both", expand=True, padx=20, pady=10)
         scrollbar.place(relx=0.98, rely=0.33, relheight=0.57)
 
+        self.tree.bind("<<TreeviewSelect>>", self.on_select)
+
         self.load_departments()
         self.load_teachers()
 
@@ -109,23 +118,15 @@ class TeacherGUI(tk.Toplevel):
 
         for t in self.teachers:
 
-            department = ""
-
-            if len(t) > 4:
-                department = t[4]
-
-            email = t[2] if len(t) > 2 else ""
-            phone = t[3] if len(t) > 3 else ""
-
             self.tree.insert(
                 "",
                 tk.END,
                 values=(
                     t[0],
                     t[1],
-                    email,
-                    phone,
-                    department
+                    t[2],
+                    t[3],
+                    t[4]
                 )
             )
 
@@ -159,9 +160,96 @@ class TeacherGUI(tk.Toplevel):
                 str(e)
             )
 
+    def update_teacher(self):
+
+        selected = self.tree.selection()
+
+        if not selected:
+            return
+
+        teacher_id = self.tree.item(selected[0])["values"][0]
+
+        try:
+
+            dept_id = int(
+                self.dept_combo.get().split(" - ")[0]
+            )
+
+            update_teacher(
+                teacher_id,
+                self.name_entry.get(),
+                self.email_entry.get(),
+                self.phone_entry.get(),
+                dept_id
+            )
+
+            messagebox.showinfo(
+                "Success",
+                "Teacher updated successfully."
+            )
+
+            self.clear_form()
+            self.load_teachers()
+
+        except Exception as e:
+
+            messagebox.showerror(
+                "Error",
+                str(e)
+            )
+
+    def delete_teacher(self):
+
+        selected = self.tree.selection()
+
+        if not selected:
+            return
+
+        if not messagebox.askyesno(
+            "Confirm",
+            "Delete selected teacher?"
+        ):
+            return
+
+        teacher_id = self.tree.item(selected[0])["values"][0]
+
+        delete_teacher(teacher_id)
+
+        messagebox.showinfo(
+            "Deleted",
+            "Teacher deleted successfully."
+        )
+
+        self.clear_form()
+        self.load_teachers()
+
     def clear_form(self):
 
         self.name_entry.delete(0, tk.END)
         self.email_entry.delete(0, tk.END)
         self.phone_entry.delete(0, tk.END)
         self.dept_combo.set("")
+
+    def on_select(self, event):
+
+        selected = self.tree.selection()
+
+        if not selected:
+            return
+
+        index = self.tree.index(selected[0])
+
+        teacher = self.teachers[index]
+
+        self.clear_form()
+
+        self.name_entry.insert(0, teacher[1])
+        self.email_entry.insert(0, teacher[2])
+        self.phone_entry.insert(0, teacher[3])
+
+        dept_id = teacher[5]
+
+        for i, dept in enumerate(self.departments):
+            if dept[0] == dept_id:
+                self.dept_combo.current(i)
+                break
